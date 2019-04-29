@@ -17,7 +17,7 @@ There is no limitation on agents' structure. You can write rule-based algorithms
 ## Quick Start Guide
 ### Installation
 ```bash
-pip install numpy pygame
+pip install -U numpy pandas pygame
 git clone https://github.com/CETC-TFAI/MaCA.git
 cd MaCA
 export PYTHONPATH=$(pwd)/environment:$PYTHONPATH
