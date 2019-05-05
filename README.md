@@ -1,5 +1,6 @@
 # MaCA
 ![](https://img.shields.io/badge/language-python-green.svg)
+![](https://img.shields.io/badge/platform-windows-green.svg)
 ![](https://img.shields.io/badge/platform-linux-green.svg)
 ![](https://img.shields.io/badge/platform-mac-green.svg)
 ![](https://img.shields.io/badge/stability-experimental-green.svg)
@@ -17,33 +18,30 @@ There is no limitation on agents' structure. You can write rule-based algorithms
 ## Quick Start Guide
 ### Installation
 ```bash
-pip install numpy pygame
+pip install -U numpy pandas pygame
 git clone https://github.com/CETC-TFAI/MaCA.git
 cd MaCA
 export PYTHONPATH=$(pwd)/environment:$PYTHONPATH
 ```
 ### Run a combat between two agents
-[fight.py](fight.py) can execute two agents. It uses two instances of a fixed-rule agent to fight each other by default.
+[fight_mp.py](fight_mp.py) can execute two agents. It uses two instances of a fixed-rule agent to fight each other by default.
 ```bash
-python fight.py
+python fight_mp.py
 ```
 You can specify agents and map by input arguments. In addition an agent should provide a call interface follows the MaCa platform specification.
 ### Replay
 MaCa can record runtime log while playing and training. Use [replay.py](replay.py) to perform a replay.
 
-First, run [fight.py](fight.py) and enable log record function
+First, run [fight_mp.py](fight_mp.py) and enable log record function
 ```bash
-python fight.py --log
+python fight_mp.py --log
 ```
+
 Then, run [replay.py](replay.py) to replay the log
 ```bash
-python replay.py default_log
+python replay.py fix_rule_vs_fix_rule
 ```
-The log structure of MaCa is a set of .macalog files, they will save in path "log/log-name/".
+The log structure of MaCA is a set of .macalog files, they will be saved in path "log/log-name/".
 When you run the [replay.py](replay.py), You must input a "log-name" as the parameter to specify which log you want to replay.
-### Train
-```bash
-python train.py
-```
-MaCA provides an image based RL-API for deep reinforcement learning, but also a underlying data based RAW-API for other agent types e.g. fixed-rule agent development. Considering that different algorithms need different implementation methods and code structures, the training example can not be suitable for all algorithms. You can design your own algorithm and training script based on the two APIs.
 
+For more information, see [tutorial](/doc/tutorial.md)
