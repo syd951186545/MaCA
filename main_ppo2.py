@@ -1,8 +1,8 @@
-from train.simple import PPO2
+from train.simple.ppo2 import Agent_p
 import os
 import copy
 import numpy as np
-from MaCA2.agent.fix_rule_no_att.agent import Agent
+from agent.fix_rule_no_att.agent import Agent
 from interface import Environment
 
 MAP_PATH = 'maps/1000_1000_fighter10v10.map'
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     blue_agent.set_map_info(size_x, size_y, blue_detector_num, blue_fighter_num)
 
     red_detector_action = []
-    fighter_model = PPO2.Agent(ACTION_NUM)
+    fighter_model = Agent_p(ACTION_NUM)
 
     # execution
     for x in range(MAX_EPOCH):
@@ -45,6 +45,7 @@ if __name__ == "__main__":
         while True:
             obs_list = []
             action_list = []
+            action_prob_list = []
             red_fighter_action = []
             # get obs
             if step_cnt == 0:
@@ -61,12 +62,13 @@ if __name__ == "__main__":
                     tmp_img_obs = red_obs_dict['fighter'][y]['screen']
                     tmp_img_obs = tmp_img_obs.transpose(2, 0, 1)
                     tmp_info_obs = red_obs_dict['fighter'][y]['info']
-                    move, attack, action_prob = fighter_model.choose_action(tmp_img_obs, tmp_info_obs)
+                    action, action_prob = fighter_model.choose_action(tmp_img_obs, tmp_info_obs)
                     obs_list.append({'screen': copy.deepcopy(tmp_img_obs), 'info': copy.deepcopy(tmp_info_obs)})
-                    action_list.append(tmp_action)
-                    # action formation
-                    true_action[0] = int(360 / COURSE_NUM * int(move/ ATTACK_IND_NUM))
-                    true_action[3] = int(attack % ATTACK_IND_NUM)
+                    action_list.append(action)
+                    action_prob_list.append(action_prob)
+                    # action formation 16方位 21目标
+                    true_action[0] = int(360 / COURSE_NUM * int(action/ ATTACK_IND_NUM))
+                    true_action[3] = int(action % ATTACK_IND_NUM)
                 red_fighter_action.append(true_action)
             red_fighter_action = np.array(red_fighter_action)
             # step
@@ -75,25 +77,24 @@ if __name__ == "__main__":
             red_detector_reward, red_fighter_reward, red_game_reward, blue_detector_reward, blue_fighter_reward, blue_game_reward = env.get_reward()
             detector_reward = red_detector_reward + red_game_reward
             fighter_reward = red_fighter_reward + red_game_reward
-            # save repaly
+            # save repaly(没有侦察机)
             red_obs_dict, blue_obs_dict = env.get_obs()
             for y in range(red_fighter_num):
                 if obs_got_ind[y]:
                     tmp_img_obs = red_obs_dict['fighter'][y]['screen']
                     tmp_img_obs = tmp_img_obs.transpose(2, 0, 1)
                     tmp_info_obs = red_obs_dict['fighter'][y]['info']
-                    fighter_model.store_transition(obs_list[y], action_list[y], fighter_reward[y],
+                    fighter_model.store_transition(obs_list[y], action_list[y],action_prob_list[y], fighter_reward[y],
                                                    {'screen': copy.deepcopy(tmp_img_obs),
                                                     'info': copy.deepcopy(tmp_info_obs)})
 
-            # if done, perform a learn
-            if env.get_done():
+            # until done, perform a learn
+            if env.get_done() or step_cnt > 5000:
                 # detector_model.learn()
                 fighter_model.learn()
                 break
-            # if not done learn when learn interval
-            if (step_cnt > 0) and (step_cnt % LEARN_INTERVAL == 0):
-                # detector_model.learn()
-                fighter_model.learn()
+            # # if not done learn when learn interval
+            # if (step_cnt > 0) and (step_cnt % LEARN_INTERVAL == 0):
+            #     # detector_model.learn()
+            #     fighter_model.learn()
             step_cnt += 1
-

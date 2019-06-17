@@ -6,7 +6,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-import gym
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -36,7 +35,7 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
         self.conv1 = nn.Sequential(  # 100 * 100 * 3
             nn.Conv2d(
-                in_channels=3,
+                in_channels=5,
                 out_channels=16,
                 kernel_size=5,
                 stride=1,
@@ -68,9 +67,8 @@ class Actor(nn.Module):
                              dim=1)
         feature = self.feature_fc(combined)
         actions = self.decision_fc(feature)
-        move_action_prob = F.softmax(actions[:15])  # （360度）16方位移動
-        attack_action_prob = F.softmax(actions[16:])  # 0不攻擊，剩下為长期攻击目标，短期攻击目标
-        return move_action_prob, attack_action_prob
+        action_prob = F.softmax(actions)
+        return action_prob
 
 
 class BaseLine(nn.Module):
@@ -79,7 +77,7 @@ class BaseLine(nn.Module):
         super(BaseLine, self).__init__()
         self.conv1 = nn.Sequential(  # 100 * 100 * 3
             nn.Conv2d(
-                in_channels=3,
+                in_channels=5,
                 out_channels=16,
                 kernel_size=5,
                 stride=1,
@@ -122,7 +120,7 @@ class BaseLine(nn.Module):
         return value
 
 
-class Agent:
+class Agent_p:
     def __init__(
             self,
             n_actions,
@@ -145,8 +143,13 @@ class Agent:
         self.epsilon_increment = e_greedy_increment
         self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max
         self.memory_counter = 0
-        self.training_step = 0
-        self.buffer = []
+        self.s_screen_memory = []
+        self.s_info_memory = []
+        self.a_memory = []
+        self.p_memory = []
+        self.r_memory = []
+        self.s__screen_memory = []
+        self.s__info_memory = []
 
         self.gpu_enable = torch.cuda.is_available()
 
@@ -162,12 +165,24 @@ class Agent:
         self.actor_optimizer = optim.Adam(self.actor_net.parameters(), lr=self.lr)
         self.critic_net_optimizer = optim.Adam(self.critic_net.parameters(), lr=self.lr)
 
-    def store_transition(self, s, ma, aa, log_p, r, s_):
-        self.buffer.append(Transition(s, ma, aa, r, log_p, s_))
+    def store_transition(self, s, a, p, r, s_):
+        self.s_screen_memory.append(s['screen'])
+        self.s_info_memory.append(s['info'])
+        self.a_memory.append(a)
+        self.p_memory.append(p)
+        self.r_memory.append(r)
+        self.s__screen_memory.append(s_['screen'])
+        self.s__info_memory.append(s_['info'])
         self.memory_counter += 1
 
     def __clear_memory(self):
-        self.buffer.clear()
+        self.s_screen_memory.clear()
+        self.s_info_memory.clear()
+        self.a_memory.clear()
+        self.p_memory.clear()
+        self.r_memory.clear()
+        self.s__screen_memory.clear()
+        self.s__info_memory.clear()
         self.memory_counter = 0
 
     def choose_action(self, img_obs, info_obs):
@@ -176,41 +191,44 @@ class Agent:
         if self.gpu_enable:
             img_obs = img_obs.cuda()
             info_obs = info_obs.cuda()
-        move_action_prob, attack_action_prob = self.actor_net(img_obs, info_obs)
-        m = Categorical(move_action_prob)
-        move_action = m.sample()
-        a = Categorical(attack_action_prob)
-        attack_action = a.sample()
+        action_probs = self.actor_net(img_obs, info_obs)
+        a = Categorical(action_probs)
+        action = a.sample()
         if self.gpu_enable:
-            move_action = move_action.cpu()
-            attack_action = attack_action.cpu()
-        prob = move_action_prob[:, move_action.item()].item() * attack_action_prob[:, attack_action.item()].item()
-        return move_action, attack_action, prob
+            action = action.cpu()
+        prob = action_probs[:, action.item()].item()
+        return action, prob
 
     def learn(self):
-        self.training_step += 1
+        # pre possess mem
+        s_screen_mem = torch.FloatTensor(np.array(self.s_screen_memory))
+        s_info_mem = torch.FloatTensor(np.array(self.s_info_memory))
+        a_mem = torch.LongTensor(np.array(self.a_memory))
+        r_mem = torch.FloatTensor(np.array(self.r_memory))
+        r_mem = r_mem.view(self.memory_counter, 1)
+        p_mem = torch.FloatTensor(np.array(self.p_memory))
+        p_mem = p_mem.view(self.memory_counter, 1)
+        s_screen_mem_ = torch.FloatTensor(np.array(self.s__screen_memory))
+        s_info_mem_ = torch.FloatTensor(np.array(self.s__info_memory))
+        if self.gpu_enable:
+            s_screen_mem = s_screen_mem.cuda()
+            s_info_mem = s_info_mem.cuda()
+            a_mem = a_mem.cuda()
+            p_mem = p_mem.cuda()
+            r_mem = r_mem.cuda()
+            s_screen_mem_ = s_screen_mem_.cuda()
+            s_info_mem_ = s_info_mem_.cuda()
 
-        s_screen = torch.FloatTensor(t.state["screen"] for t in self.buffer)
-        s_info = torch.FloatTensor(t.state["info"] for t in self.buffer)
-        action = torch.tensor([t.action for t in self.buffer], dtype=torch.float).view(-1, 1)
-        reward = torch.tensor([t.reward for t in self.buffer], dtype=torch.float).view(-1, 1)
-        next_s_screen = torch.FloatTensor(t.next_state["screen"] for t in self.buffer)
-        next_s_info = torch.FloatTensor(t.next_state["info"] for t in self.buffer)
-
-        old_action_log_prob = torch.tensor([t.a_log_prob for t in self.buffer], dtype=torch.float).view(-1, 1)
-
-        reward = (reward - reward.mean()) / (reward.std() + 1e-10)
         with torch.no_grad():
-            target_v = reward + args.gamma * self.critic_net(next_s_screen, next_s_info)
+            target_v = r_mem + args.gamma * self.critic_net(s_screen_mem_, s_info_mem_).gather(1, a_mem)
 
-        advantage = (target_v - self.critic_net(s_screen, s_info)).detach()
+        advantage = (target_v - self.critic_net(s_screen_mem, s_info_mem)).detach()
+
         for _ in range(self.ppo_epoch):  # iteration ppo_epoch
-            for index in BatchSampler(SubsetRandomSampler(range(self.buffer_capacity), self.batch_size, True)):
+            for index in BatchSampler(SubsetRandomSampler(range(len(a_mem)), self.batch_size, True)):
                 # epoch iteration, PPO core!!!
-                ma_probs, aa_probs = self.actor_net(s_screen[index], s_info[index])
-                ma_prob = ma_probs[action[index][0]]
-                aa_prob = aa_probs[action[index][3]]
-                ratio = torch.exp(ma_prob * aa_prob - old_action_log_prob)
+                my_action, my_prob = self.actor_net(s_screen_mem[index], s_info_mem[index])
+                ratio = torch.exp(my_prob - p_mem[index])
 
                 L1 = ratio * advantage[index]
                 L2 = torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param) * advantage[index]
@@ -220,10 +238,10 @@ class Agent:
                 nn.utils.clip_grad_norm_(self.actor_net.parameters(), self.max_grad_norm)
                 self.actor_optimizer.step()
 
-                value_loss = F.smooth_l1_loss(self.critic_net(s_screen[index], s_info[index]), target_v[index])
+                value_loss = F.smooth_l1_loss(self.critic_net(s_screen_mem[index], s_info_mem[index]), target_v[index])
                 self.critic_net_optimizer.zero_grad()
                 value_loss.backward()
                 nn.utils.clip_grad_norm_(self.critic_net.parameters(), self.max_grad_norm)
                 self.critic_net_optimizer.step()
 
-        del self.buffer[:]
+        self.__clear_memory()
