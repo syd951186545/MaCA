@@ -16,7 +16,7 @@ import numpy as np
 class NetFighter(nn.Module):
     def __init__(self, n_actions):
         super(NetFighter, self).__init__()
-        self.conv1 = nn.Sequential(     # 100 * 100 * 3
+        self.conv1 = nn.Sequential(  # 100 * 100 * 3
             nn.Conv2d(
                 in_channels=5,
                 out_channels=16,
@@ -27,16 +27,16 @@ class NetFighter(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2),
         )
-        self.conv2 = nn.Sequential(     # 50 * 50 * 16
+        self.conv2 = nn.Sequential(  # 50 * 50 * 16
             nn.Conv2d(16, 32, 5, 1, 2),
             nn.ReLU(),
-            nn.MaxPool2d(2),            # 25 * 25 * 32
+            nn.MaxPool2d(2),  # 25 * 25 * 32
         )
         self.info_fc = nn.Sequential(
             nn.Linear(3, 256),
             nn.Tanh(),
         )
-        self.feature_fc = nn.Sequential(    # 25 * 25 * 32 + 256
+        self.feature_fc = nn.Sequential(  # 25 * 25 * 32 + 256
             nn.Linear((25 * 25 * 32 + 256), 512),
             nn.ReLU(),
         )
@@ -51,6 +51,7 @@ class NetFighter(nn.Module):
         feature = self.feature_fc(combined)
         action = self.decision_fc(feature)
         return action
+
 
 # Deep Q Network off-policy
 class RLFighter:
@@ -98,6 +99,8 @@ class RLFighter:
         # self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=self.lr)
         self.optimizer = torch.optim.RMSprop(self.eval_net.parameters(), lr=self.lr)
 
+    def store_model(self):
+        torch.save(self.eval_net, "./model/dqn_net.pkl")
 
     def store_transition(self, s, a, r, s_):
         self.s_screen_memory.append(s['screen'])
@@ -180,7 +183,7 @@ class RLFighter:
 class NetDetector(nn.Module):
     def __init__(self, n_actions):
         super(NetDetector, self).__init__()
-        self.conv1 = nn.Sequential(     # 100 * 100 * 3
+        self.conv1 = nn.Sequential(  # 100 * 100 * 3
             nn.Conv2d(
                 in_channels=3,
                 out_channels=16,
@@ -191,16 +194,16 @@ class NetDetector(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2),
         )
-        self.conv2 = nn.Sequential(     # 50 * 50 * 16
+        self.conv2 = nn.Sequential(  # 50 * 50 * 16
             nn.Conv2d(16, 32, 5, 1, 2),
             nn.ReLU(),
-            nn.MaxPool2d(2),            # 25 * 25 * 32
+            nn.MaxPool2d(2),  # 25 * 25 * 32
         )
         self.info_fc = nn.Sequential(
             nn.Linear(3, 256),
             nn.Tanh(),
         )
-        self.feature_fc = nn.Sequential(    # 25 * 25 * 32 + 256
+        self.feature_fc = nn.Sequential(  # 25 * 25 * 32 + 256
             nn.Linear((25 * 25 * 32 + 256), 512),
             nn.ReLU(),
         )
@@ -215,4 +218,3 @@ class NetDetector(nn.Module):
         feature = self.feature_fc(combined)
         action = self.decision_fc(feature)
         return action
-

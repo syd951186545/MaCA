@@ -106,3 +106,4 @@ if __name__ == "__main__":
                 fighter_model.learn()
             step_cnt += 1
 
+    fighter_model.store_model()
