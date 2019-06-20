@@ -15,19 +15,20 @@ import numpy as np
 from agent.fix_rule_no_att.agent import Agent
 from interface import Environment
 from train.simple import dqn
+
 MAP_PATH = 'maps/1000_1000_fighter10v10.map'
 
-RENDER = True
+RENDER = False
 MAX_EPOCH = 1000
 BATCH_SIZE = 200
-LR = 0.01                   # learning rate
-EPSILON = 0.9               # greedy policy
-GAMMA = 0.9                 # reward discount
-TARGET_REPLACE_ITER = 100   # target update frequency
+LR = 0.01  # learning rate
+EPSILON = 0.9  # greedy policy
+GAMMA = 0.9  # reward discount
+TARGET_REPLACE_ITER = 100  # target update frequency
 DETECTOR_NUM = 0
 FIGHTER_NUM = 10
 COURSE_NUM = 16
-ATTACK_IND_NUM = (DETECTOR_NUM + FIGHTER_NUM) * 2 + 1 # long missile attack + short missile attack + no attack
+ATTACK_IND_NUM = (DETECTOR_NUM + FIGHTER_NUM) * 2 + 1  # long missile attack + short missile attack + no attack
 ACTION_NUM = COURSE_NUM * ATTACK_IND_NUM
 LEARN_INTERVAL = 100
 
@@ -93,7 +94,8 @@ if __name__ == "__main__":
                     tmp_img_obs = tmp_img_obs.transpose(2, 0, 1)
                     tmp_info_obs = red_obs_dict['fighter'][y]['info']
                     fighter_model.store_transition(obs_list[y], action_list[y], fighter_reward[y],
-                                                   {'screen': copy.deepcopy(tmp_img_obs), 'info': copy.deepcopy(tmp_info_obs)})
+                                                   {'screen': copy.deepcopy(tmp_img_obs),
+                                                    'info': copy.deepcopy(tmp_info_obs)})
 
             # if done, perform a learn
             if env.get_done():
@@ -105,5 +107,6 @@ if __name__ == "__main__":
                 # detector_model.learn()
                 fighter_model.learn()
             step_cnt += 1
-
+        if x % 100 == 0:
+            print(x)
     fighter_model.store_model()
