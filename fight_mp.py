@@ -17,15 +17,15 @@ from common.agent_process import AgentCtrl
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--map", type=str, default="1000_1000_2_10_vs_2_10", help='map name, only name, not file path')
-    parser.add_argument("--agent1", type=str, default="fix_rule", help='agent 1 name, only name, not path')
-    parser.add_argument("--agent2", type=str, default="fix_rule", help='agent 2 name, only name, not path')
-    parser.add_argument("--round", type=int, default=1, help='play rounds')
+    parser.add_argument("--map", type=str, default="1000_1000_fighter10v10", help='map name, only name, not file path')
+    parser.add_argument("--agent1", type=str, default="exp_agent_new", help='agent 1 name, only name, not path')
+    parser.add_argument("--agent2", type=str, default="exp_agent_new", help='agent 2 name, only name, not path')
+    parser.add_argument("--round", type=int, default=10, help='play rounds')
     parser.add_argument("--fps", type=float, default=0, help='display fps')
     parser.add_argument("--max_step", type=int, default=5000, help='max step in a round')
     parser.add_argument("--random_pos", action="store_true", help='if the initial positions are random or fix')
     parser.add_argument("--log", action="store_true", help='saving log')
-    parser.add_argument("--log_path", type=str, default="default_log", help='log folder name')
+    parser.add_argument("--log_path", type=str, default="log/default_log", help='log folder name')
     args = parser.parse_args()
 
     print('Map:', args.map)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     # environment initiation
     if args.log:
-        if args.log_path == 'default_log':
+        if args.log_path == 'log/default_log':
             log_flag = args.agent1 + '_vs_' + args.agent2
         else:
             log_flag = args.log_path

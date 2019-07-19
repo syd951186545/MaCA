@@ -65,9 +65,9 @@ class RLFighter:
         if self.gpu_enable:
             print('GPU Available!!')
             self.target_net = self.target_net.cuda()
-            self.target_net.load_state_dict(torch.load('model/simple/model.pkl'))
+            self.target_net.load_state_dict(torch.load('model/simple/model_000026900.pkl'))
         else:
-            self.target_net.load_state_dict(torch.load('model/simple/model.pkl', map_location=lambda storage, loc: storage))
+            self.target_net.load_state_dict(torch.load('model/simple/model_000026900.pkl', map_location=lambda storage, loc: storage))
 
     def choose_action(self, img_obs, info_obs):
         img_obs = torch.unsqueeze(torch.FloatTensor(img_obs), 0)

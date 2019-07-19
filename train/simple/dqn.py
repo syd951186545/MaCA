@@ -16,7 +16,7 @@ import numpy as np
 class NetFighter(nn.Module):
     def __init__(self, n_actions):
         super(NetFighter, self).__init__()
-        self.conv1 = nn.Sequential(  # 100 * 100 * 3
+        self.conv1 = nn.Sequential(  # 100 * 100 * 5
             nn.Conv2d(
                 in_channels=5,
                 out_channels=16,

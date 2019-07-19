@@ -18,7 +18,7 @@ from train.simple import dqn
 
 MAP_PATH = 'maps/1000_1000_fighter10v10.map'
 
-RENDER = False
+RENDER = True
 MAX_EPOCH = 1000
 BATCH_SIZE = 200
 LR = 0.01  # learning rate
@@ -33,7 +33,7 @@ ACTION_NUM = COURSE_NUM * ATTACK_IND_NUM
 LEARN_INTERVAL = 100
 
 if __name__ == "__main__":
-    # create blue agent
+    # create blue agent # fix_rule
     blue_agent = Agent()
     # get agent obs type
     red_agent_obs_ind = 'simple'
@@ -86,8 +86,8 @@ if __name__ == "__main__":
             red_detector_reward, red_fighter_reward, red_game_reward, blue_detector_reward, blue_fighter_reward, blue_game_reward = env.get_reward()
             detector_reward = red_detector_reward + red_game_reward
             fighter_reward = red_fighter_reward + red_game_reward
-            # save repaly
             red_obs_dict, blue_obs_dict = env.get_obs()
+            # save repaly
             for y in range(red_fighter_num):
                 if obs_got_ind[y]:
                     tmp_img_obs = red_obs_dict['fighter'][y]['screen']

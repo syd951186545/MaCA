@@ -45,3 +45,8 @@ The log structure of MaCA is a set of .macalog files, they will be saved in path
 When you run the [replay.py](replay.py), You must input a "log-name" as the parameter to specify which log you want to replay.
 
 For more information, see [tutorial](/doc/tutorial.md)
+
+
+1.store_experience
+2.get_distribution
+3.train_via_exp

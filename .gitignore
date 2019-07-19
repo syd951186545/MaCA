@@ -123,4 +123,7 @@ data
 /environment/encryption/.pyarmor_config
 *.macalog
 *.pkl
+*.json
 /tournament/result
+/experiences/
+/tensorbordX/

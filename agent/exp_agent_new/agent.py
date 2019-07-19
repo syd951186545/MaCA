@@ -1,17 +1,17 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-@author: Gao Fang
-@contact: gaofang@cetc.com.cn
+@author: Sun yu dong
+@contact:
 @software: PyCharm
 @file: agent.py
-@time: 2018/3/13 0013 10:51
-@desc: rule based agent
+@time:
+@desc:
 """
 
 import os
 from agent.base_agent import BaseAgent
-from agent.simple import dqn
+from agent.exp_agent_new import PPO
 import interface
 from world import config
 import copy
@@ -20,8 +20,8 @@ import numpy as np
 
 DETECTOR_NUM = 0
 FIGHTER_NUM = 10
-COURSE_NUM = 16
-ATTACK_IND_NUM = (DETECTOR_NUM + FIGHTER_NUM) * 2 + 1 # long missile attack + short missile attack + no attack
+COURSE_NUM = 24
+ATTACK_IND_NUM = (DETECTOR_NUM + FIGHTER_NUM) * 2 + 1  # long missile attack + short missile attack + no attack
 ACTION_NUM = COURSE_NUM * ATTACK_IND_NUM
 
 
@@ -36,10 +36,10 @@ class Agent(BaseAgent):
         """
         BaseAgent.__init__(self)
         self.obs_ind = 'simple_beta'
-        if not os.path.exists('model/simple/model_000026900.pkl'):
-            print('Error: agent simple model data not exist!')
+        if not os.path.exists('model/new_net/model_After_file98.pkl'):
+            print('Error: agent model data not exist!')
             exit(1)
-        self.fighter_model = dqn.RLFighter(ACTION_NUM)
+        self.fighter_model = PPO.Agent_p(ACTION_NUM)
 
     def set_map_info(self, size_x, size_y, detector_num, fighter_num):
         self.size_x = size_x
@@ -64,6 +64,7 @@ class Agent(BaseAgent):
         fighter_action = []
         for y in range(self.fighter_num):
             true_action = np.array([0, 1, 0, 0], dtype=np.int32)
+            last_action = 0
             if obs_dict['fighter'][y]['alive']:
                 true_action = np.array([0, 1, 0, 0], dtype=np.int32)
                 tmp_img_obs = obs_dict['fighter'][y]['screen']
@@ -72,11 +73,14 @@ class Agent(BaseAgent):
                 tmp_action = self.fighter_model.choose_action(tmp_img_obs, tmp_info_obs)
                 # action formation
                 true_action[0] = int(360 / COURSE_NUM * int(tmp_action[0] / ATTACK_IND_NUM))
+                # true_action[0] = 0
                 true_action[3] = int(tmp_action[0] % ATTACK_IND_NUM)
+                # if true_action[0] - tmp_info_obs[3] * 15 != 0:
+                #     true_action[0] = last_action + (true_action[0] - tmp_info_obs[3] * 15) / abs(
+                #         true_action[0] - tmp_info_obs[3] * 15) * 15
+                #     last_action = true_action[0]
+
             fighter_action.append(copy.deepcopy(true_action))
         fighter_action = np.array(fighter_action)
 
         return detector_action, fighter_action
-
-
-
